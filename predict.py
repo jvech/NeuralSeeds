@@ -32,12 +32,11 @@ def main(_argv):
     weights_path = FLAGS.weights
     show_results = FLAGS.show_results
 
-    model = get_model(output_channels=1, size=224)
+    model = get_model(output_channels=1, size=None)
     model.load_weights(weights_path)
     X = plt.imread(img_path)/255
     X = tf.convert_to_tensor(X)
     X = tf.expand_dims(X, 0)
-    X = tf.image.resize(X, (224, 224))
     Y = model.predict(X)
     if show_results:
         display([X[0], Y[0]])
