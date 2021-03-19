@@ -73,9 +73,6 @@ def main(_argv):
                         callbacks=[cp_callback]
                         )
 
-    for image, mask in val_Dataset.take(-1):
-        predict = model.predict(image)
-        display([image[0],mask[0],predict[0]])
 
 if __name__=="__main__":
     app.run(main)
