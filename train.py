@@ -33,18 +33,19 @@ def main(_argv):
     #Initialize Variables
     checkpoint_path = FLAGS.weights+'cp-{epoch:04d}.ckpt'
     image_size = 224 
+    classes = 3
 
     ## Loading Dataset
     train_Dataset = Dataset.load_tfrecord_dataset(
                         FLAGS.train_Dataset, image_size)
-    train_Dataset = train_Dataset.map(lambda X, Y: Dataset.transform_images(X, Y))
+    #train_Dataset = train_Dataset.map(lambda X, Y: Dataset.transform_images(X, Y, labels=classes))
     train_Dataset = train_Dataset.shuffle(buffer_size=FLAGS.buffer_size)
     train_Dataset = train_Dataset.batch(FLAGS.batch_size, drop_remainder=True)
     train_Dataset = train_Dataset.prefetch(
                         buffer_size=tf.data.experimental.AUTOTUNE)
 
     val_Dataset = Dataset.load_tfrecord_dataset(FLAGS.val_Dataset, image_size)
-    val_Dataset = val_Dataset.map(lambda X, Y: Dataset.transform_images(X, Y))
+    #val_Dataset = val_Dataset.map(lambda X, Y: Dataset.transform_images(X, Y, labels=classes))
     val_Dataset = val_Dataset.batch(FLAGS.batch_size, drop_remainder=True)
 
     ## Loading Model
@@ -58,11 +59,11 @@ def main(_argv):
                                 save_freq=save_freq
                                 )
 
-    model = get_model(output_channels=1,size=None)
+    model = get_model(output_channels=classes,size=image_size)
     model.save_weights(checkpoint_path.format(epoch=0))
     model.compile(optimizer='adam', 
                   metrics=['accuracy'],
-                  loss = tf.keras.losses.BinaryCrossentropy())
+                  loss = tf.keras.losses.SparseCategoricalCrossentropy())
 
     ## Training Model
     model_history = model.fit(

@@ -1,4 +1,5 @@
 #!/usr/bin/python3
+import matplotlib.pyplot as plt
 import os
 import tensorflow as tf
 import numpy as np
@@ -7,11 +8,13 @@ from numpy import random
 from os import path
 from absl import flags, app, logging
 from absl.flags import FLAGS
+from Dataset import parse_labelfile, mask2categorical
 
 flags.DEFINE_string('img_path', './seeds_data/JPEGImages/', 'path for input images')
 flags.DEFINE_string('mask_path', './seeds_data/SegmentationClass/', 'path for label images')
 flags.DEFINE_string('tfrecord_path', './tfrecords/', 'path for final tf_record')
 flags.DEFINE_float('val_size', 0.2, 'validation data size, it must be a number between: (0.0-1.0)')
+flags.DEFINE_string('labels', 'labelmap.txt', 'path to the labels description')
 
 def bytes_list_feature(value):
     return tf.train.Feature(bytes_list=tf.train.BytesList(value=[value]))
@@ -41,9 +44,16 @@ def train_test_split(imgs_path, masks_path, val_size):
 
     return train_img_path, train_mask_path, val_img_path, val_mask_path
 
-def create_example(img, mask):
+def create_example(img, mask, labels):
     encoded_img = tf.io.read_file(img)
     encoded_mask = tf.io.read_file(mask)
+    ## mask preprocessing ##
+    img = tf.io.decode_image(encoded_mask)
+    img = mask2categorical(img, labels)
+    img = tf.expand_dims(img, axis=-1)
+
+    encoded_mask = tf.io.encode_png(img) # Re-encoding the mask
+
     example = tf.train.Example(
                 features=tf.train.Features(feature={
                     'image': bytes_list_feature(encoded_img.numpy()),
@@ -51,12 +61,14 @@ def create_example(img, mask):
                     }))
     return example
 
+
 def main(_argv):
     logging.info("Initializing Variables")
     PATH_IMG = FLAGS.img_path
     PATH_MASK = FLAGS.mask_path
     VAL_TFRECORD = path.join(FLAGS.tfrecord_path, "val-data.tfrecord")
     TRAIN_TFRECORD = path.join(FLAGS.tfrecord_path, "train-data.tfrecord")
+    LABELS = parse_labelfile(FLAGS.labels)
     val_size = FLAGS.val_size
 
     img_path = [path.join(PATH_IMG, imgs) for imgs in np.sort(os.listdir(PATH_IMG))]
@@ -68,13 +80,13 @@ def main(_argv):
     logging.info("Writing tfrecords files")
     tf_record_train = tf.io.TFRecordWriter(TRAIN_TFRECORD)
     for img, mask in zip(train_img, train_mask):
-        example = create_example(img, mask)
+        example = create_example(img, mask, LABELS)
         tf_record_train.write(example.SerializeToString())
     tf_record_train.close()
 
     tf_record_val = tf.io.TFRecordWriter(VAL_TFRECORD)
     for img, mask in zip(val_img, val_mask):
-        example = create_example(img, mask)
+        example = create_example(img, mask, LABELS)
         tf_record_val.write(example.SerializeToString())
     tf_record_val.close()
 

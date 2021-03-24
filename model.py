@@ -63,7 +63,7 @@ def get_model(output_channels=1,size=128,name="U-Net"):
 
     last = tf.keras.layers.Conv2DTranspose(
         output_channels, 3, strides=2,
-        padding='same',activation=tf.keras.activations.sigmoid)  #64x64 -> 128x128
+        padding='same',activation=tf.keras.activations.softmax)  #64x64 -> 128x128
 
     x = last(x)
     return tf.keras.Model(inputs=inputs, outputs=x,name=name)
