@@ -18,8 +18,8 @@ def jaccard_index(A: np.array, B: np.array, labels: dict) -> list:
     for x in label:
         Inter = np.sum((A == x) & (B == x))
         Union = np.sum((A == x) | (B == x))
-        if Union == 0:
-            IoU.append(0)
+        if np.sum(A==x) == 0:
+            IoU.append(-1)
         else:
             IoU.append(Inter/Union)
     return IoU
@@ -33,8 +33,8 @@ def dice_index(A: np.array, B: np.array, labels: dict) -> list:
     for x in label:
         Inter = np.sum((A == x) & (B == x))
         Den = (np.sum(A == x) + np.sum(B == x))
-        if Den == 0:
-            dice.append(0)
+        if np.sum(A==x) == 0:
+            dice.append(-1)
         else:
             dice.append(2 * Inter / Den)
     return dice
@@ -46,8 +46,8 @@ if __name__ == "__main__":
         PRED_MASK = sys.argv[2]
 
         labels = parse_labelfile(LABEL_PATH)
-        Y_pred = plt.imread(TRUE_MASK)
-        Y_true = plt.imread(PRED_MASK)
+        Y_pred = plt.imread(PRED_MASK)
+        Y_true = plt.imread(TRUE_MASK)
         Y_pred = mask2categorical(Y_pred, labels)
         Y_true = mask2categorical(Y_true, labels)
 
