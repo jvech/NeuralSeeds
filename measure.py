@@ -56,4 +56,5 @@ if __name__ == "__main__":
         IoU_dice = IoU + dice
         print((2*len(labels)-1)*"%1.4f,"%IoU_dice[:-1] + "%1.4f"%IoU_dice[-1])
     else:
-        print("Usage: ./measure.py TRUEMASK PREDMASK LABELS", file=sys.stderr)
+        print("Usage: ./measure.py [TRUEMASK] [PREDMASK] [LABELS]", file=sys.stderr)
+        print("Show how good was the prediction compared with its true mask")

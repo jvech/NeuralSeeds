@@ -4,4 +4,6 @@ seeds/
 seeds_data/
 tfrecords/
 weights/
+measures/
 tags
+scripts/
