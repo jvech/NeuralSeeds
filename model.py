@@ -72,4 +72,5 @@ if __name__=="__main__":
     #app._run_init(['unet'],app.parse_flags_with_usage)
     model = get_model(output_channels=3)
     model.summary()
-    tf.keras.utils.plot_model(model, show_shapes=True)
+    tf.keras.utils.plot_model(model, to_file='data/model.png', 
+                              show_shapes=False, show_layer_names=False)

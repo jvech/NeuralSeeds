@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import cv2
 from Dataset import mask2categorical, parse_labelfile
 from sys import argv, stderr
+from datetime import datetime
 
 USAGE = f"USAGE [OPTIONS ...] [PNG_IMG] [TXT_FILE]\n"
 USAGE += "Count the segmented objects of a predicted or true mask image\n\n"
@@ -43,7 +44,7 @@ def draw_boxes(img, boxes):
         pt1 = tuple(pt1.tolist())
         pt2 = tuple(pt2.tolist())
         COLOR = tuple([255, 255, 255])
-        X = cv2.rectangle(X, pt1, pt2, COLOR)
+        X = cv2.rectangle(X, pt1, pt2, COLOR, 2)
     return X
 
 if __name__ == "__main__":
@@ -68,10 +69,18 @@ if __name__ == "__main__":
             fig, ax = plt.subplots(1, 2)
             ax[0].imshow(img)
             ax[1].imshow(dimg)
-            title = f""
-            for key in lcount:
-                title += f"{key}: {lcount[key]}  "
-            fig.suptitle(title)
+            ax[0].axis("off")
+            ax[1].axis("off")
+
+            total = lcount["germinated"] + lcount["no_germinated"]
+            today = datetime.now()
+            stitle = f"{today.strftime('%Y-%m-%d %H:%M:%S')}\n\n"
+            stitle += f"Total semillas detectadas: {total}\n"
+            title = f"Total semillas germinadas: {lcount['germinated']}   "
+            title += f"Total semillas no germinadas: {lcount['no_germinated']}"
+
+            fig.suptitle(stitle)
+            fig.text(.5, .05, title, ha="center", fontsize="large")
             plt.show()
     else:
         print(USAGE, file=stderr)
