@@ -19,7 +19,7 @@ flags.DEFINE_bool("show_results", True, "show prediction result")
 def display(display_list):
     plt.figure(figsize=(15, 15))
 
-    title = ['Input Image', 'True Mask', 'Predicted Mask']
+    title = ['Input Image', 'Predicted Mask']
 
     for i in range(len(display_list)):
         plt.subplot(1, len(display_list), i+1)
