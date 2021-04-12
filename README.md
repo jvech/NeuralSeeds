@@ -54,13 +54,28 @@ The defaults for train_Dataset, val_Dataset and weights are the same as stated b
 In order to do the prediction of an image run the following command:
 
 ```shell
-python3 predict.py --image_path=IMAGE PATH --mask_path=MASK_PATH --labels=LABELS PATH --show_results=True --weights=WEIGHTS PATH
+python3 predict.py --image_path=IMAGE PATH --mask_path=MASK PATH --labels=LABELS PATH --show_results=True --weights=WEIGHTS PATH
 ```
 In this case, weights is not the directory, but the specific file from the weights we want to use to make the prediciton. mask_path is the path were the predicted mask should be saved (None by default) (Recommended file extension: png).
 
+It is also possible to count the amount of germinated and no germinated seeds in a true or predicted mask. To do this, simply run:
+
+```shell
+python3 count.py [MASK] [LABELS]
+```
+This will print the amount of germinated and no germinated seeds
+
 ## Check the performance
-To see how good was the prediction use measure.py, it will print the dice and
-jaccard indexes of the prediction respect to the mask,
+To see how good the prediction was use measure.py, it will print the dice and
+jaccard indexes of the prediction respect to the mask.
+
+Run:
+
+```shell
+python3 measure.py [TRUEMASK] [PREDMASK] [LABELS]
+```
+
+
 
 ## TO DO:
 
