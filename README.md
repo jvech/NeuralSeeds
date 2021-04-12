@@ -75,8 +75,3 @@ Run:
 python3 measure.py [TRUEMASK] [PREDMASK] [LABELS]
 ```
 
-
-
-## TO DO:
-
-Add the count part to the project
