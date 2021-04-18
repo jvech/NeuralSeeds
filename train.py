@@ -35,15 +35,15 @@ def main(_argv):
     image_size = 224 
     classes = 3
 
-    ## Loading Dataset
-    train_Dataset = Dataset.load_tfrecord_dataset(
-                        FLAGS.train_Dataset, image_size)
+    ## Load Training Dataset
+    train_Dataset = Dataset.load_tfrecord_dataset(FLAGS.train_Dataset, image_size)
     #train_Dataset = train_Dataset.map(lambda X, Y: Dataset.transform_images(X, Y, labels=classes))
     train_Dataset = train_Dataset.shuffle(buffer_size=FLAGS.buffer_size)
     train_Dataset = train_Dataset.batch(FLAGS.batch_size, drop_remainder=True)
     train_Dataset = train_Dataset.prefetch(
                         buffer_size=tf.data.experimental.AUTOTUNE)
 
+    ## Load Validation dataset
     val_Dataset = Dataset.load_tfrecord_dataset(FLAGS.val_Dataset, image_size)
     #val_Dataset = val_Dataset.map(lambda X, Y: Dataset.transform_images(X, Y, labels=classes))
     val_Dataset = val_Dataset.batch(FLAGS.batch_size, drop_remainder=True)

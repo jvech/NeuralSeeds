@@ -19,6 +19,19 @@ def parse_dataset(tfrecord, size):
     return X_train/255, Y_train
 
 def load_tfrecord_dataset(dataset_path, size):
+    """Load and parse a dataset in tfrecord format. 
+    Parameters
+    -----------
+    dataset_path : str 
+        path of the tfrecord dataset
+    size : int
+        size of the images in the dataset
+    
+    Returns
+    ----------
+    tf.data.Dataset
+        Dataset with resized and scaled (min-max) images.
+    """
     raw_dataset = tf.data.TFRecordDataset([dataset_path])
     return raw_dataset.map(lambda x: parse_dataset(x, size))
 
