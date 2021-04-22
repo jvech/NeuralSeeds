@@ -4,6 +4,7 @@ A neural network designed to segmentate 3 different classes, by default it was
 thought to segmentate germinated seeds, no germinated seeds and the background
 
 The principal scripts are:
+* augmentation.py
 * train.py
 * make\_TFrecords.py
 * predict.py
@@ -24,6 +25,20 @@ mkdir weights tfrecords
 
 You might as well use different names or paths for this directories as long as you specify them correctly in the following commands.
 
+
+## (Optional) Data augmentation
+
+It is possible to perform data augmentation before training. It applies some random transformations to the input images such as rotations, crops and blurrings.
+
+Run:
+
+```shell
+python3 augmentation.py --img_path=INPUT IMAGES DIRECTORY --masks_path=MASKS PATH --augmented_path=PATH TO SAVE THE NEW DATASET 
+```
+By default `img_path` is set to `./DatasetE2/JPEGImages/` and `masks_path`
+to `./DatasetE2/SegmentationClass/`
+
+The default for `augmented_path` is `None`, the script automatically creates a new directory in the working directory with the results named `AugmentedDataset` if left unspecified.
 ## Prepare the dataset
 
 Before training, you must first create two tfrecords files using the script make_TFrecords.py:
