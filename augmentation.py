@@ -21,7 +21,7 @@ flags.DEFINE_string('augmented_path', None, 'path for augmented dataset')
 def RandCrop(im, mask, seed=np.random.randint(0,255)):
   Height = im.shape[0]
   Width = im.shape[1]
-  Crop = np.random.randint(50,Height)
+  Crop = np.random.randint(500,Height)
   PaddingH = int((Height-Crop)/2)
   PaddingW = int((Width-Crop)/2)
 
@@ -62,7 +62,7 @@ def RandRot(im, mask, seed=0):
 def RandZoomIn(im, mask, seed=np.random.randint(0,255)):
   Height = im.shape[0]
   Width = im.shape[1]
-  Crop = np.random.randint(50,Height)
+  Crop = np.random.randint(500,Height)
 
   tf.random.set_seed(seed)
   img = tf.image.random_crop(im,[Crop, Crop, 3]).numpy()
