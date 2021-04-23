@@ -33,12 +33,13 @@ It is possible to perform data augmentation before training. It applies some ran
 Run:
 
 ```shell
-python3 augmentation.py --img_path=INPUT IMAGES DIRECTORY --masks_path=MASKS PATH --augmented_path=PATH TO SAVE THE NEW DATASET 
+python3 augmentation.py --img_path=INPUT IMAGES DIRECTORY --masks_path=MASKS PATH --augmented_path=PATH TO SAVE THE NEW DATASET --labels=LABELS DIRECTORY
 ```
-By default `img_path` is set to `./DatasetE2/JPEGImages/` and `masks_path`
-to `./DatasetE2/SegmentationClass/`
+By default `img_path` is set to `./DatasetE2/JPEGImages/` , `masks_path`
+to `./DatasetE2/SegmentationClass/` and `labels` to `./DatasetE2/labelmap.txt `
 
 The default for `augmented_path` is `None`, the script automatically creates a new directory in the working directory with the results named `AugmentedDataset` if left unspecified.
+
 ## Prepare the dataset
 
 Before training, you must first create two tfrecords files using the script make_TFrecords.py:

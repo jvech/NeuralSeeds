@@ -6,6 +6,7 @@ import tensorflow_addons as tfa
 from PIL import Image
 from skimage.filters import gaussian
 import os
+import shutil
 
 from absl import app, flags, logging
 from absl.flags import FLAGS
@@ -14,6 +15,7 @@ from absl.flags import FLAGS
 flags.DEFINE_string('img_path', './DatasetE2/JPEGImages/', 'path for input images')
 flags.DEFINE_string('masks_path', './DatasetE2/SegmentationClass/', 'path for label images')
 flags.DEFINE_string('augmented_path', None, 'path for augmented dataset')
+flags.DEFINE_string('labels','./DatasetE2/labelmap.txt','path for the labels description')
 
 
 # Transformations:
@@ -109,15 +111,25 @@ def main(argv_):
     ImgDir = FLAGS.img_path
     MasksDir = FLAGS.masks_path
     results_path = FLAGS.augmented_path
+    labels_path = FLAGS.labels
 
     if not FLAGS.augmented_path:
-        os.mkdir('./AugmentedDataset')
+        try:
+            os.mkdir('./AugmentedDataset')
+        except:
+            pass
         results_path = './AugmentedDataset'
     results_images = results_path+'/JPEGImages/' 
     results_masks = results_path+'/SegmentationClass/'
-    os.mkdir(results_images)
-    os.mkdir(results_masks)
+    
+    try:
+        os.mkdir(results_images)
+        os.mkdir(results_masks)
+    except:
+        pass
 
+    shutil.copy2(labels_path,results_path) # Copy labelmap.txt to the new created directory
+    
     transformations = [RandFlipLR,RandBlurr,RandBright,RandContr,RandCrop,RandFlipUD,RandRot,RandZoomIn,RandZoomOut]
     h=0
     fig=plt.figure(figsize=(15,15))
@@ -138,6 +150,9 @@ def main(argv_):
       ImgDir = results_images
       MasksDir = results_masks
       print(h)
+
+
+      
 
 if __name__=="__main__":
     app.run(main)
