@@ -28,15 +28,16 @@ You might as well use different names or paths for this directories as long as y
 
 ## (Optional) Data augmentation
 
-It is possible to perform data augmentation before training. It applies some random transformations to the input images such as rotations, crops and blurrings.
+It is possible to perform data augmentation before training. It applies some random transformations to the input images such as rotations, crops and shiftings.
 
 Run:
 
 ```shell
-python3 augmentation.py --img_path=INPUT IMAGES DIRECTORY --masks_path=MASKS PATH --augmented_path=PATH TO SAVE THE NEW DATASET --labels=LABELS DIRECTORY
+python3 augmentation.py --img_path=INPUT IMAGES DIRECTORY --masks_path=MASKS PATH --augmented_path=PATH TO SAVE THE NEW DATASET --labels=LABELS DIRECTORY --n_images=NUMBER OF IMAGES TO GENERATE
 ```
-By default `img_path` is set to `./DatasetE2/JPEGImages/` , `masks_path`
-to `./DatasetE2/SegmentationClass/` and `labels` to `./DatasetE2/labelmap.txt `
+By default `img_path` is set to `./DatasetE2/JPEGImages` , `masks_path` to `./DatasetE2/SegmentationClass` , `labels` to `./DatasetE2/labelmap.txt` and `n_images` to `192` 
+
+The script generates a number of images multiple of 32 as closest as possible to `n_images`.
 
 The default for `augmented_path` is `None`, the script automatically creates a new directory in the working directory with the results named `AugmentedDataset` if left unspecified.
 

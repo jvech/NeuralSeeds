@@ -2,6 +2,3 @@ tensorflow
 numpy
 opencv-python
 matplotlib
-tensorflow_addons
-Pillow
-scikit-image
