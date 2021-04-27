@@ -1,7 +1,9 @@
+#!/usr/bin/python3
 import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import os
+from os import path
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from shutil import copy2, move
 from absl import app, flags, logging
@@ -31,92 +33,64 @@ def main(argv_):
 
     # Initialize variables
 
-    ImgDir = FLAGS.img_path
-    MasksDir = FLAGS.masks_path
-    results_path = FLAGS.augmented_path
+    ImgDir = FLAGS.img_path.strip('/')
+    MasksDir = FLAGS.masks_path.strip('/')
+    results_path = FLAGS.augmented_path.strip('/')
     labels_path = FLAGS.labels
     n_images = FLAGS.n_images
 
     if not FLAGS.augmented_path:
         try:
             os.mkdir('./AugmentedDataset')
-        except:
+        except FileExistsError:
             pass
         results_path = './AugmentedDataset'
-        
+    else:
+        try:
+            os.mkdir(results_path)
+            os.mkdir(results_path+'/Images')
+            os.mkdir(results_path+'/Masks')
+        except FileExistsError:
+            pass
 
-    try:
-      os.mkdir(results_path+'/Images')
-      os.mkdir(results_path+'/Masks')
-    except:
-      pass
-  
     copy2(labels_path,results_path)
-    
-    f=1
-    if not(len(os.listdir(ImgDir)) == 1 and os.listdir(ImgDir)[0].find('.') == -1):
-        while f:
-          try:
-            os.mkdir(ImgDir+'/../Images'+str(f))
-            j=f
-            f=0
-          except:
-            f+=1
-        ImgDir_2 = ImgDir[:ImgDir.rfind('/')]+'/Images'+str(j)
-        move(ImgDir,ImgDir+'/../Images'+str(j))
-    else:
-        ImgDir_2 = ImgDir  
 
-    f=1
-    if not(len(os.listdir(MasksDir)) == 1 and os.listdir(MasksDir)[0].find('.') == -1):
-        while f:
-          try:
-            os.mkdir(MasksDir+'/../Masks'+str(f))
-            j=f
-            f=0
-          except:
-            f+=1
-        MasksDir_2 = MasksDir[:MasksDir.rfind('/')]+'/Masks'+str(j)
-        move(MasksDir,MasksDir+'/../Masks'+str(j))
-    else:
-        MasksDir_2 = MasksDir
+    IMG_PATH = path.join(ImgDir, os.listdir(ImgDir)[0])
+    image_size = plt.imread(IMG_PATH).shape[:2]
 
-    
-    image_size = plt.imread(MasksDir_2+'/'+os.listdir(MasksDir_2)[0]+'/'+next(os.walk(MasksDir_2+'/'+os.listdir(MasksDir_2)[0]))[2][0]).shape[:2]
-
+    DATA_PATH = path.abspath(path.join(ImgDir, '..')) 
     seed = np.random.randint(100)
-    image_generator = datagen.flow_from_directory(directory=ImgDir_2,target_size=image_size,save_to_dir=results_path+'/Images',
-                                                  class_mode=None,save_format='jpg',seed = seed)
+    IMGS_OUT = path.join(results_path, 'Images')
+    IMGS_SUBDIR = ImgDir.strip("/").split("/")[-1]
+    image_generator = datagen.flow_from_directory(directory = DATA_PATH,
+                                                  target_size = image_size,
+                                                  save_to_dir = IMGS_OUT,
+                                                  classes = [IMGS_SUBDIR],
+                                                  class_mode = None,
+                                                  save_format = 'jpg',
+                                                  seed = seed)
 
-    masks_generator = datagen.flow_from_directory(directory=MasksDir_2,target_size=image_size,save_to_dir=results_path+'/Masks',
-                                                  class_mode=None,save_format='png',seed = seed)
+    DATA_PATH = path.abspath(path.join(ImgDir, '..')) 
+    MASK_OUT = path.join(results_path, 'Masks')
+    MASKS_SUBDIR = MasksDir.strip("/").split("/")[-1]
+    masks_generator = datagen.flow_from_directory(directory = DATA_PATH,
+                                                  target_size = image_size,
+                                                  save_to_dir = MASK_OUT,
+                                                  classes = [MASKS_SUBDIR],
+                                                  class_mode = None,
+                                                  save_format = 'png',
+                                                  seed = seed)
 
 
     n_iter = int(n_images/32)
     if n_images % 32:
-      n_iter += 1
-    
+        n_iter += 1
+
     print(f"Generating {n_iter*32} images")
     for i in range(n_iter):
-      image_generator.next()
-      masks_generator.next()
-      print(i+1,'/',n_iter, 'done')
-
-
-    # Reorder the directories
-    if not f:
-      move(MasksDir_2+'/'+os.listdir(MasksDir_2)[0], MasksDir_2+'/..')
-      move(ImgDir_2+'/'+os.listdir(ImgDir_2)[0],ImgDir_2+'/..')
-      os.rmdir(ImgDir_2)
-      os.rmdir(MasksDir_2)
+        image_generator.next()
+        masks_generator.next()
+        print(i+1,'/',n_iter, 'done')
 
 if __name__=="__main__":
     app.run(main)
-
-    
-
-
-
-    
-        
-
