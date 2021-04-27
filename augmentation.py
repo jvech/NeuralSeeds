@@ -86,11 +86,19 @@ def main(argv_):
     if n_images % 32:
         n_iter += 1
 
+    print("Copying Original images")
+    for img_path, mask_path in zip(os.listdir(ImgDir), os.listdir(MasksDir)):
+        img_src = path.join(ImgDir, img_path)
+        mask_src = path.join(MasksDir, mask_path)
+        copy2(img_src, IMGS_OUT)
+        copy2(mask_src, MASK_OUT)
+
     print(f"Generating {n_iter*32} images")
     for i in range(n_iter):
         image_generator.next()
         masks_generator.next()
         print(i+1,'/',n_iter, 'done')
+
 
 if __name__=="__main__":
     app.run(main)
