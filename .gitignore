@@ -1,10 +1,11 @@
 **/__pycache__/
 data/
-seeds/
-seeds_data/
 tfrecords/
 weights/
 measures/
 tags
 scripts/
 UNet_informe/
+manuals/*
+!manuals/*.pdf
+references/
