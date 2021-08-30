@@ -22,7 +22,7 @@ import matplotlib.pyplot as plt
 from docopt import docopt
 from os import path
 from utils import data
-from utils.model import get_model
+from utils.model import UNET, get_model
 
 from tensorflow.keras.losses import SparseCategoricalCrossentropy
 
@@ -52,7 +52,7 @@ def train(args):
         ds_val = None
     ds_train = ds_train.batch(BATCH_SIZE, drop_remainder=True)
 
-    model = get_model(output_channels=3, size=list(SHAPE) + [3])
+    model = get_model(out_channels=3, in_size=SHAPE+(3,))
     model.compile(
             optimizer = "adam",
             metrics = ["accuracy"],
