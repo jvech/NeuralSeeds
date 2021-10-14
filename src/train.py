@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 """ Train
 Usage:
-    train.py [options] <imgs> <masks> <labelmap.txt>
+    train.py [options] <imgs> <annotations>
 
 Options:
     -h --help               Show this message
@@ -18,57 +18,24 @@ except ModuleNotFoundError: pass
 import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-
 from docopt import docopt
-from os import path
-from utils import data
-from utils.model import UNET, get_model
 
-from tensorflow.keras.losses import SparseCategoricalCrossentropy
+from utils import data
 
 def train(args):
-    ## CLI ARGS
-    IMG_PATH = args["<imgs>"]
-    LABEL_PATH = args["<masks>"]
-    IMG_PATHS = np.sort([path.join(IMG_PATH, img) for img in os.listdir(IMG_PATH)])
-    LABEL_PATHS = np.sort([path.join(LABEL_PATH, img) for img in os.listdir(LABEL_PATH)])
-
-    MODEL_PATH = args["--model"]
-
-    LABEL_ID = data.parse_labelfile(args["<labelmap.txt>"])
+    IMG_PATH  = args["<imgs>"]
+    ANN_PATH  = args["<annotations>"]
     BATCH_SIZE = int(args["--batch"])
     EPOCHS = int(args["--epochs"])
-    SPLIT_RATE = float(args["--val_split"])
-    SHAPE = (224, 224)
 
-    ds = data.read_data(IMG_PATHS, LABEL_PATHS)
-    ds_train = data.preprocess_ds(ds, LABEL_ID, SHAPE)
+    ds = data.data_read(IMG_PATH, ANN_PATH)
+    pre_ds = data.data_preprocess(ds)
 
-    ds_train = ds_train.shuffle(buffer_size=50)
-    if SPLIT_RATE > 0.0:
-        ds_train, ds_val = data.train_val_split(ds_train, SPLIT_RATE)
-        ds_val = ds_val.map(lambda x, y: (x[tf.newaxis], y[tf.newaxis]))
-    else:
-        ds_val = None
-    ds_train = ds_train.batch(BATCH_SIZE, drop_remainder=True)
-
-    model = get_model(out_channels=3, in_size=SHAPE+(3,))
-    model.compile(
-            optimizer = "adam",
-            metrics = ["accuracy"],
-            loss = SparseCategoricalCrossentropy()
-            )
-
-    DS_LEN = len(list(ds_train.as_numpy_iterator()))
-    model_hist = model.fit(ds_train, 
-                           validation_data = ds_val,
-                           epochs = EPOCHS,
-                           steps_per_epoch = DS_LEN
-                           )
-
-    model.save(MODEL_PATH)
-    tf.keras.backend.clear_session()
+    #TODO
+    pass
 
 if __name__ == "__main__":
     args = docopt(__doc__)
-    train(args)
+    model = train(args)
+    model.summary()
+    pass

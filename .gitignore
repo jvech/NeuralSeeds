@@ -7,5 +7,7 @@ tags
 scripts/
 UNet_informe/
 manuals/*
+paper/*
 !manuals/*.pdf
+!paper/*.tex
 references/

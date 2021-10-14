@@ -70,7 +70,7 @@ def bndboxes_draw(img: "tf.Tensor", boxes: "tf.Tensor") -> "np.ndarray":
         if c == 1: COLOR = (255, 0, 0)          #RED
         elif c == 2: COLOR = (255, 255, 0)      #YELLOW
         else: COLOR = (0, 0, 0)                 #BLACK
-        X = cv2.rectangle(X, pt1, pt2, COLOR, 2)
+        X = cv2.rectangle(X, pt1, pt2, COLOR, 1)
     return tf.constant(X, dtype=tf.uint8)
 
 def generate_anchors(featuremap_size: tuple, img_size: tuple, aspect_ratio: float=1):
@@ -142,10 +142,15 @@ def data_preprocess(ds, new_size=(256, 256)):
     pre_ds = ds.map(img_pre)
     return pre_ds
 
-def data_encode(ds, featuremap_size, thresh = 0.5):
+def data_encode(ds, featuremap_sizes, aspect_ratios, thresh = 0.5):
     def enc_anchors(img, boxes):
-        anchors = generate_anchors(featuremap_size, img.shape[0:2])
-        anchors = tf.reshape(anchors, [-1, 5])
+        anchors = []
+        for featmap_size in featuremap_sizes:
+            for aspect_ratio in aspect_ratios:
+                anchor = generate_anchors(featmap_size, img.shape[0:2], aspect_ratio)
+                anchor = tf.reshape(anchor, [-1, 5])
+                anchors.append(anchor)
+        anchors = tf.concat(anchors, axis=0)
         anchors = convert_to_corners(anchors)
         matched_anchors = tf.py_function(
                                         func=match_anchors,
@@ -153,16 +158,20 @@ def data_encode(ds, featuremap_size, thresh = 0.5):
                                         Tout=tf.float32
                                         )
         return img, matched_anchors
-
     enc_ds = ds.map(enc_anchors)
     return enc_ds
 
 if __name__ == "__main__":
-    IMG_PATH = "../data/GermPredDataset/PennisetumGlaucum/img"
-    ANNS_PATH = "../data/GermPredDataset/PennisetumGlaucum/true_ann"
+    IMG_PATH = "../data/GermPredDataset/ZeaMays/img"
+    ANNS_PATH = "../data/GermPredDataset/ZeaMays/true_ann"
     ds = data_read(IMG_PATH, ANNS_PATH)
     pre_ds = data_preprocess(ds)
-    enc_ds = data_encode(pre_ds, (8, 8), 0.2)
+    featuremap_sizes = [(8, 8), (16, 16), (32, 32)]
+    aspect_ratios = (1, 2/3, 3/2)
+    enc_ds = data_encode(pre_ds, 
+                         featuremap_sizes, 
+                         aspect_ratios, 
+                         thresh=0.2)
 
     import matplotlib.pyplot as plt
     for x, y in pre_ds.take(2):
@@ -170,6 +179,7 @@ if __name__ == "__main__":
 
     for x, y in enc_ds.take(2):
         plt.imshow(bndboxes_draw(x*255, y[y[:, 4] != -1.0])); plt.show()
+    print(y.shape)
 
     #S1 = generate_anchors((8, 8), (256, 256), aspect_ratio=1)
     #S1 = convert_to_corners(tf.reshape(S1, [-1, 5]))
