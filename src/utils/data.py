@@ -6,7 +6,7 @@ import numpy as np
 import xml.etree.ElementTree as ET
 #from utils.metrics import get_IoU
 
-def get_IoU(box1: "tf.tensor", box2: "tf.tensor") -> float:
+def get_IoU(box1: "tf.Tensor", box2: "tf.Tensor") -> float:
     """Return The intersection over Union over 2 corner boxes"""
 
     lu = tf.maximum(box1[:2], box2[:2])
@@ -18,21 +18,35 @@ def get_IoU(box1: "tf.tensor", box2: "tf.tensor") -> float:
     wh_intersection = tf.maximum(0.0, rd - lu)
     Intersection = tf.reduce_prod(wh_intersection)
     Union = tf.maximum(area1 + area2 - Intersection, 1e-8)
-    return Intersection / Union
+    return float(Intersection / Union)
+
+def get_IoUs(boxes1: "tf.Tensor", boxes2: "tf.Tensor") -> "tf.Tensor":
+    lu = tf.maximum(boxes1[:, None, :2], boxes2[:, :2])
+    rd = tf.minimum(boxes1[:, None, 2:], boxes2[:, 2:])
+
+    area1 = (boxes1[:,0] - boxes1[:,2]) * (boxes1[:,1] - boxes1[:,3])
+    area2 = (boxes2[:,0] - boxes2[:,2]) * (boxes2[:,1] - boxes2[:,3])
+    wh_intersection = tf.maximum(0.0, rd - lu)
+    Intersection = tf.reduce_prod(wh_intersection, axis=2)
+
+    Union = tf.maximum(area1[:, None], area2 - Intersection, 1e-8)
+    return tf.clip_by_value(Intersection / Union, 0.0, 1.0)
 
 def convert_to_xyhw(box_corners):
     xmin = box_corners[:, 0] 
     ymin = box_corners[:, 1] 
     xmax = box_corners[:, 2] 
     ymax = box_corners[:, 3] 
-    classes = box_corners[:, -1]
 
     w = xmax - xmin
     h = ymax - ymin
 
     x = xmin + w/2
     y = ymin + h/2
-    return tf.stack([x, y, w, h, classes], axis=1)
+    if len(box_corners.shape) == 4:
+        classes = box_corners[:, 4]
+        return tf.stack([x, y, w, h, classes], axis=1)
+    return tf.stack([x, y, w, h], axis=1)
 
 def convert_to_corners(box_xyhw):
     x = box_xyhw[:, 0]
@@ -45,22 +59,10 @@ def convert_to_corners(box_xyhw):
     xmax = x + w/2
     ymin = y - h/2
     ymax = y + h/2
-
-    return tf.stack([xmin, ymin, xmax, ymax, classes], axis=1)
-
-def match_anchors(anchors, boxes, thresh = 0.5):
-    anchor_confs = []
-    for anchor in anchors:
-        conf = []
-        for box in boxes:
-            iou = float(get_IoU(anchor[:4], box[:4]))
-            if iou > thresh: 
-                conf.append(iou)
-            else: 
-                conf.append(-1.0)
-        anchor_confs.append([max(conf)])
-    anchor_confs = tf.constant(anchor_confs)
-    return tf.concat([anchors[:, :4], anchor_confs], axis=1)
+    if len(box_xyhw.shape) > 4:
+        classes = box_xyhw[:, 4]
+        return tf.stack([xmin, ymin, xmax, ymax, classes], axis=1)
+    return tf.stack([xmin, ymin, xmax, ymax], axis=1)
 
 def bndboxes_draw(img: "tf.Tensor", boxes: "tf.Tensor") -> "np.ndarray":
     X = img.numpy().astype("uint8").copy()
@@ -87,8 +89,7 @@ def generate_anchors(featuremap_size: tuple, img_size: tuple, aspect_ratio: floa
     h =  (img_size[1] / featuremap_size[1]) / aspect_ratio
     W = tf.tile(tf.constant([[w]], tf.float32), featuremap_size)
     H = tf.tile(tf.constant([[h]], tf.float32), featuremap_size)
-    classes = tf.tile(tf.constant([[0.0]], tf.float32), featuremap_size)
-    dims = tf.stack([W, H, classes], axis=-1)
+    dims = tf.stack([W, H], axis=-1)
 
     xywh_anchors = tf.concat([centers, dims], axis=-1)
     return xywh_anchors
@@ -148,15 +149,27 @@ def data_encode(ds, featuremap_sizes, aspect_ratios, thresh = 0.5):
         for featmap_size in featuremap_sizes:
             for aspect_ratio in aspect_ratios:
                 anchor = generate_anchors(featmap_size, img.shape[0:2], aspect_ratio)
-                anchor = tf.reshape(anchor, [-1, 5])
+                anchor = tf.reshape(anchor, [-1, 4])
                 anchors.append(anchor)
-        anchors = tf.concat(anchors, axis=0)
-        anchors = convert_to_corners(anchors)
-        matched_anchors = tf.py_function(
-                                        func=match_anchors,
-                                        inp=[anchors, boxes, thresh],
-                                        Tout=tf.float32
-                                        )
+        anchors_xywh = tf.concat(anchors, axis=0)
+        anchors_corners = convert_to_corners(anchors_xywh)
+        IoU_matrix = tf.py_function(get_IoUs, 
+                              inp=(anchors_corners, boxes[:, 0:4]),
+                              Tout=tf.float32)
+
+        max_IoUs = tf.reduce_max(IoU_matrix, axis=1)
+        max_IoUs_ids = tf.argmax(IoU_matrix, axis=1)
+        max_IoUs_ids = tf.cast(max_IoUs_ids, tf.int32)
+        obj_mask = tf.greater_equal(max_IoUs, thresh)
+
+        boxes_classes = boxes[:, 4]
+
+        class_ids = tf.gather(boxes_classes, max_IoUs_ids)
+        class_ids = tf.cast(class_ids, tf.float32)
+        class_ids = tf.where(obj_mask, class_ids, 0.0)
+        class_ids = tf.expand_dims(class_ids, axis=1)
+
+        matched_anchors = tf.concat([anchors_corners, class_ids], axis=-1)
         return img, matched_anchors
     enc_ds = ds.map(enc_anchors)
     return enc_ds
@@ -171,21 +184,9 @@ if __name__ == "__main__":
     enc_ds = data_encode(pre_ds, 
                          featuremap_sizes, 
                          aspect_ratios, 
-                         thresh=0.2)
+                         thresh=0.3)
 
     import matplotlib.pyplot as plt
-    for x, y in pre_ds.take(2):
-        plt.imshow(bndboxes_draw(x*255, y)); plt.show()
-
-    for x, y in enc_ds.take(2):
-        plt.imshow(bndboxes_draw(x*255, y[y[:, 4] != -1.0])); plt.show()
-    print(y.shape)
-
-    #S1 = generate_anchors((8, 8), (256, 256), aspect_ratio=1)
-    #S1 = convert_to_corners(tf.reshape(S1, [-1, 5]))
-    #Q = match_anchors(S1, y, thresh = 0.1)
-    #Q1 = Q[Q[:, 4] != -1.0]
-    #p = bndboxes_draw(255 * x, y)
-    #p = bndboxes_draw(p, Q1)
-    #plt.imshow(p); plt.show()
-
+    for x, y in enc_ds.take(5):
+        q = bndboxes_draw(255*x,y[y[:, 4]!=0])
+        plt.imshow(q); plt.show()
