@@ -169,7 +169,16 @@ def data_encode(ds, featuremap_sizes, aspect_ratios, thresh = 0.5):
         class_ids = tf.where(obj_mask, class_ids, 0.0)
         class_ids = tf.expand_dims(class_ids, axis=1)
 
-        matched_anchors = tf.concat([anchors_corners, class_ids], axis=-1)
+        boxes_xywh = convert_to_xyhw(boxes)
+        gt_boxes_xywh = tf.gather(boxes_xywh[:, 0:4], max_IoUs_ids)
+        encoded_anchors = tf.concat(
+                [
+                    (gt_boxes_xywh[:,0:2] - anchors_xywh[:, 0:2]) / anchors_xywh[:, 2:],
+                    tf.math.log(gt_boxes_xywh[:, 2:]/anchors_xywh[:, 2:])
+                ],
+                axis = 1
+                )
+        matched_anchors = tf.concat([encoded_anchors, class_ids], axis=-1)
         return img, matched_anchors
     enc_ds = ds.map(enc_anchors)
     return enc_ds
@@ -188,5 +197,6 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
     for x, y in enc_ds.take(5):
-        q = bndboxes_draw(255*x,y[y[:, 4]!=0])
-        plt.imshow(q); plt.show()
+        #q = bndboxes_draw(255*x,y[y[:, 4]!=0])
+        #plt.imshow(q); plt.show()
+        print(tf.reduce_max(y[y[:, 4]!=0], axis=0))
