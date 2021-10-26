@@ -43,7 +43,7 @@ def convert_to_xyhw(box_corners):
 
     x = xmin + w/2
     y = ymin + h/2
-    if len(box_corners.shape) == 4:
+    if int(box_corners.shape[1]) > 4:
         classes = box_corners[:, 4]
         return tf.stack([x, y, w, h, classes], axis=1)
     return tf.stack([x, y, w, h], axis=1)
@@ -53,13 +53,12 @@ def convert_to_corners(box_xyhw):
     y = box_xyhw[:, 1]
     w = box_xyhw[:, 2]
     h = box_xyhw[:, 3]
-    classes = box_xyhw[:, -1]
 
     xmin = x - w/2
     xmax = x + w/2
     ymin = y - h/2
     ymax = y + h/2
-    if len(box_xyhw.shape) > 4:
+    if int(box_xyhw.shape[1]) > 4:
         classes = box_xyhw[:, 4]
         return tf.stack([xmin, ymin, xmax, ymax, classes], axis=1)
     return tf.stack([xmin, ymin, xmax, ymax], axis=1)
@@ -76,6 +75,7 @@ def bndboxes_draw(img: "tf.Tensor", boxes: "tf.Tensor") -> "np.ndarray":
     return tf.constant(X, dtype=tf.uint8)
 
 def generate_anchors(featuremap_size: tuple, img_size: tuple, aspect_ratio: float=1):
+    """Generate a (M x N x 4) grid of boxes for an image"""
     x_anchors = tf.range(featuremap_size[0], dtype=tf.float32) + 0.5
     y_anchors = tf.range(featuremap_size[1], dtype=tf.float32) + 0.5
 
@@ -188,7 +188,7 @@ if __name__ == "__main__":
     ANNS_PATH = "../data/GermPredDataset/ZeaMays/true_ann"
     ds = data_read(IMG_PATH, ANNS_PATH)
     pre_ds = data_preprocess(ds)
-    featuremap_sizes = [(8, 8), (16, 16), (32, 32)]
+    featuremap_sizes = [(32, 32), (16, 16), (8, 8)]
     aspect_ratios = (1, 2/3, 3/2)
     enc_ds = data_encode(pre_ds, 
                          featuremap_sizes, 
@@ -196,7 +196,14 @@ if __name__ == "__main__":
                          thresh=0.3)
 
     import matplotlib.pyplot as plt
-    for x, y in enc_ds.take(5):
+    for x, y in pre_ds.take(5):
         #q = bndboxes_draw(255*x,y[y[:, 4]!=0])
         #plt.imshow(q); plt.show()
-        print(tf.reduce_max(y[y[:, 4]!=0], axis=0))
+        pass
+    q = generate_anchors((32, 32), tuple(x.shape[0:2]))
+    q = tf.reshape(q, [-1, 4])
+    cls = tf.constant([0]*q.shape[0], dtype=tf.float32)[:, tf.newaxis]
+    q = tf.concat([q, cls], axis=1)
+    q = convert_to_corners(q)
+    s = bndboxes_draw(255*x, q)
+    plt.imshow(s); plt.show()
