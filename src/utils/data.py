@@ -94,6 +94,15 @@ def generate_anchors(featuremap_size: tuple, img_size: tuple, aspect_ratio: floa
     xywh_anchors = tf.concat([centers, dims], axis=-1)
     return xywh_anchors
 
+def generate_multiple_anchors(featuremap_sizes: list, img_size: tuple, aspect_ratios: tuple):
+    anchors = []
+    for featmap_size in featuremap_sizes:
+        for aspect_ratio in aspect_ratios:
+            anchor = generate_anchors(featmap_size, img_size, aspect_ratio)
+            anchor = tf.reshape(anchor, [-1, 4])
+            anchors.append(anchor)
+    return tf.concat(anchors, axis=0)
+
 def data_read(imgs_path: str, anns_path: str, img_size: '(int, int)' = (624, 624)) -> 'tf.data.Dataset':
     anns = [path.join(anns_path, ann_file) for ann_file in os.listdir(anns_path)]
     imgs_folder = imgs_path
@@ -187,23 +196,20 @@ if __name__ == "__main__":
     IMG_PATH = "../data/GermPredDataset/ZeaMays/img"
     ANNS_PATH = "../data/GermPredDataset/ZeaMays/true_ann"
     ds = data_read(IMG_PATH, ANNS_PATH)
-    pre_ds = data_preprocess(ds)
-    featuremap_sizes = [(32, 32), (16, 16), (8, 8)]
-    aspect_ratios = (1, 2/3, 3/2)
-    enc_ds = data_encode(pre_ds, 
-                         featuremap_sizes, 
-                         aspect_ratios, 
-                         thresh=0.3)
+    pre_ds = data_preprocess(ds, (256, 256))
+    featuremap_sizes = [(64, 64), (32, 32), (8, 8)]
+    aspect_ratios = (1,  2/3, 3/2)
+    enc_ds = data_encode(pre_ds, featuremap_sizes, aspect_ratios, thresh=0.35)
 
     import matplotlib.pyplot as plt
-    for x, y in pre_ds.take(5):
-        #q = bndboxes_draw(255*x,y[y[:, 4]!=0])
-        #plt.imshow(q); plt.show()
-        pass
-    q = generate_anchors((32, 32), tuple(x.shape[0:2]))
-    q = tf.reshape(q, [-1, 4])
-    cls = tf.constant([0]*q.shape[0], dtype=tf.float32)[:, tf.newaxis]
-    q = tf.concat([q, cls], axis=1)
-    q = convert_to_corners(q)
-    s = bndboxes_draw(255*x, q)
-    plt.imshow(s); plt.show()
+    for x, y in enc_ds.take(2):
+        anchors = generate_multiple_anchors(featuremap_sizes, (256, 256), aspect_ratios)
+        phi = y[:, :4]
+        cls = tf.expand_dims(y[:, 4], axis=-1)
+        xy = phi[:, 0:2]*anchors[:, 2:] + anchors[:, :2]
+        wh = tf.math.exp(phi[:, 2:]) * anchors[:, 2:]
+        xywh_cls = tf.concat([xy, wh, cls], axis=1)
+        xyxy_cls = convert_to_corners(xywh_cls)
+        q = bndboxes_draw(255*x, xyxy_cls[xyxy_cls[:, 4] != 0])
+        print(y[y[:, 4]!=0].shape[0])
+        plt.imshow(q); plt.show()

@@ -52,7 +52,7 @@ def get_head(num_classes, backbone):
     for backbone_lyr in backbone.outputs:
         neck_lyrs = []
         for _ in range(3):
-            class_lyr = Conv2D(filters=num_classes + 1,
+            class_lyr = Conv2D(filters=num_classes,
                                 kernel_size=1,
                                 padding="same",
                                 activation="softmax")
@@ -64,7 +64,7 @@ def get_head(num_classes, backbone):
             neck_lyr = Concatenate(axis=-1)([detection_lyr(backbone_lyr), 
                                              class_lyr(backbone_lyr)])
 
-            neck_lyr = Reshape([-1, 5 + num_classes])(neck_lyr)
+            neck_lyr = Reshape([-1, 4 + num_classes])(neck_lyr)
             neck_lyrs.append(neck_lyr)
         out_lyr = Concatenate(axis=1)(neck_lyrs)
         out_layers.append(out_lyr)
