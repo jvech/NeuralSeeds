@@ -1,0 +1,93 @@
+\documentclass{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{graphs}
+\usepackage[style=ieee]{biblatex}
+\addbibresource{refs.bib}
+
+
+
+\title{Seeds Germination Detection Using Convolutional SSD-like Architectures}
+\author{Juan Valencia}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+    In this article ssd-like models are implemented to identify seeds in
+    germination using a methodology based on \cite{main:seedproject} work.
+\end{abstract}
+
+\begin{IEEEkeywords}
+    Mean Average Precision (mAP), Bounding Box, Anchor Boxes
+\end{IEEEkeywords}
+
+\section{Introduction}
+
+\section{Materials and Methods}
+
+\subsection{Dataset}
+The dataset used was taken from the image acquisition process made by a project
+with the same goal \cite{main:seedproject}. It consists of 3 folders which
+contain the annotation of three seeds species (ZeaMays, SecaleCereale and
+PennisetumGlaucum) during its germination, figure \ref{fig:zeamays_demo} shows
+one example of the image with its annotations.
+
+\begin{figure}[h]
+   \centering
+   \includegraphics[width=0.4\textwidth]{figures/theory/Dataset_example.png}
+   \label{fig:zeamays_demo}
+   \caption{Seeds with their respective bounding boxes}
+\end{figure}
+
+
+\subsection{Multiple Objects Detection Problem}
+Let $\{ I_n \in \mathbb{R}^{R \times C}, B_n \in \mathbb{R}^{M_n \times 4}, L_n
+\in \{l_1, l_2\}^{M_n}\}^N_n$ be an 1 input - 2 outputs set holding $N$
+labeled images, where $I_n$ is the $n$-th image with $R$ rows and $C$ columns.
+$B_n$ and $L_n$ contains the bounding boxes and the classes of the $M_n$ objects
+of interest from the image $I_n$ respectively.\par
+
+\subsection{Model Architecture}
+There are two approaches to perform object detection over multiple elements. The
+first is based on two stage processing which is present in architectures like
+R-CNN \cite{detectors:R-CNN} and Faster R-CNN \cite{detectors:Faster_R-CNN}
+where is necessary to process the images twice to generate proposal regions an
+then classify them, while in architectures like YOLOv3 \cite{detectors:yolov3}
+or SSD \cite{detectors:SSD} the image is passed once through the network. Models
+like R-CNN and Faster R-CNN tend to be more accurate than YOLO or SSD
+architectures but are slower \cite{detectors:comparison}. We decided to use SSD
+framework due to its improvements in speed/accuracy made in architectures like
+RetinaNet \cite{detectors:retinanet}.\par
+
+SSD architectures are made of three parts (see the Figure
+\ref{fig:SSD_architecture}):
+\begin{itemize}
+    \item \textbf{Backbone}: Is responsible of generate the feature maps which
+          will be processed by the bottleneck.
+    \item \textbf{Neck Bottle}: Its task is extract and mix relevant features
+        taking as input layers at different heights of the backbone.
+    \item \textbf{Head}: The Head of an SSD detector decode the features
+        extracted from the bottleneck to produce the predictions
+\end{itemize}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.4\textwidth]{figures/theory/SSD_architecture.png}
+    \label{fig:SSD_architecture}
+    \caption{SSD Architecture}
+\end{figure}
+
+\subsection{Evaluation Metrics}
+In Many Object detection challenges the \emph{mean average precision} (mAP) is
+used to measure the performance of the model
+
+\subsection{Data}
+
+\section{Experimental set-up}
+\printbibliography
+\end{document}

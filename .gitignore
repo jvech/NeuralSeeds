@@ -10,4 +10,5 @@ manuals/*
 paper/*
 !manuals/*.pdf
 !paper/*.tex
+!paper/*.pdf
 references/
