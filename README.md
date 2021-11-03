@@ -1,3 +1,4 @@
+[![license](https://img.shields.io/github/license/mashape/apistatus.svg)](LICENSE)
 # U-Net network to segment seeds
 
 A neural network based in the ssd framework used to detect germinating seeds.
@@ -37,5 +38,5 @@ __Available backbones__: mobilenetv2, vgg16
 $ python train.py /imgs_folder /xml_ann/folder --epochs 10 --batch 4 --val_split 0.2
 ```
 
-## Citation
-![DOI](https://plantmethods.biomedcentral.com/articles/10.1186/s13007-020-00699-x)
+## References
+* [Accurate machine learning-based germination detection, prediction and quality assessment of three grain crops](https://plantmethods.biomedcentral.com/articles/10.1186/s13007-020-00699-x)
