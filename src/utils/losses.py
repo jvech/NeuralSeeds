@@ -60,8 +60,8 @@ class BoxClassLoss(losses.Loss):
         box_loss = tf.where(tf.equal(positive_mask, 1.0), box_loss, 0.0)
 
         normalizer = tf.reduce_sum(positive_mask, axis=-1)
-        clf_loss = tf.math.devide_no_nan(tf.reduce_sum(clf_loss, axis=-1), normalizer)
-        box_loss = tf.math.devide_no_nan(tf.reduce_sum(box_loss, axis=-1), normalizer)
+        clf_loss = tf.math.divide_no_nan(tf.reduce_sum(clf_loss, axis=-1), normalizer)
+        box_loss = tf.math.divide_no_nan(tf.reduce_sum(box_loss, axis=-1), normalizer)
 
         loss = clf_loss + box_loss
         return loss
