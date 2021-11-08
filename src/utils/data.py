@@ -33,35 +33,35 @@ def get_IoUs(boxes1: "tf.Tensor", boxes2: "tf.Tensor") -> "tf.Tensor":
     return tf.clip_by_value(Intersection / Union, 0.0, 1.0)
 
 def convert_to_xyhw(box_corners):
-    xmin = box_corners[:, 0] 
-    ymin = box_corners[:, 1] 
-    xmax = box_corners[:, 2] 
-    ymax = box_corners[:, 3] 
+    xmin = box_corners[..., 0] 
+    ymin = box_corners[..., 1] 
+    xmax = box_corners[..., 2] 
+    ymax = box_corners[..., 3] 
 
     w = xmax - xmin
     h = ymax - ymin
 
     x = xmin + w/2
     y = ymin + h/2
-    if int(box_corners.shape[1]) > 4:
-        classes = box_corners[:, 4]
-        return tf.stack([x, y, w, h, classes], axis=1)
-    return tf.stack([x, y, w, h], axis=1)
+    if int(box_corners.shape[-1]) > 4:
+        classes = box_corners[..., 4]
+        return tf.stack([x, y, w, h, classes], axis=-1)
+    return tf.stack([x, y, w, h], axis=-1)
 
 def convert_to_corners(box_xyhw):
-    x = box_xyhw[:, 0]
-    y = box_xyhw[:, 1]
-    w = box_xyhw[:, 2]
-    h = box_xyhw[:, 3]
+    x = box_xyhw[..., 0]
+    y = box_xyhw[..., 1]
+    w = box_xyhw[..., 2]
+    h = box_xyhw[..., 3]
 
     xmin = x - w/2
     xmax = x + w/2
     ymin = y - h/2
     ymax = y + h/2
-    if int(box_xyhw.shape[1]) > 4:
-        classes = box_xyhw[:, 4]
-        return tf.stack([xmin, ymin, xmax, ymax, classes], axis=1)
-    return tf.stack([xmin, ymin, xmax, ymax], axis=1)
+    if int(box_xyhw.shape[-1]) > 4:
+        classes = box_xyhw[..., 4]
+        return tf.stack([xmin, ymin, xmax, ymax, classes], axis=-1)
+    return tf.stack([xmin, ymin, xmax, ymax], axis=-1)
 
 def bndboxes_draw(img: "tf.Tensor", boxes: "tf.Tensor") -> "np.ndarray":
     X = img.numpy().astype("uint8").copy()

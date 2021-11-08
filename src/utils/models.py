@@ -55,7 +55,7 @@ def get_head(num_classes, backbone):
             class_lyr = Conv2D(filters=num_classes,
                                 kernel_size=1,
                                 padding="same",
-                                activation="softmax")
+                                )
 
             detection_lyr = Conv2D(filters=4,
                                    kernel_size=1,

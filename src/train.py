@@ -14,6 +14,8 @@ Options:
 """
 
 import os
+
+from tensorflow.python.ops.gen_array_ops import concat
 try: import silence_tensorflow.auto
 except ModuleNotFoundError: pass
 import tensorflow as tf
@@ -24,6 +26,7 @@ from docopt import docopt
 from utils import data
 from utils.models import get_model
 from utils.losses import BoxClassLoss
+
 
 def train(args):
     IMG_PATH  = args["<imgs>"]
@@ -46,17 +49,17 @@ def train(args):
 
     enc_ds = enc_ds.shuffle(1024, seed=42)
 
-    for DS_SIZE, _ in enumerate(enc_ds): pass
+    for DS_SIZE, (x, y) in enumerate(enc_ds): pass
     else: DS_SIZE+=1
 
     if VAL_SPLIT > 0.01:
         VAL_SIZE = int(VAL_SPLIT * DS_SIZE)
         TRAIN_SIZE = DS_SIZE - VAL_SIZE
-        val_ds = enc_ds.take(VAL_SIZE).batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE).cache()
-        train_ds = enc_ds.skip(VAL_SIZE).batch(1).prefetch(tf.data.experimental.AUTOTUNE).cache()
+        val_ds = enc_ds.take(VAL_SIZE).batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
+        train_ds = enc_ds.skip(VAL_SIZE).batch(1).prefetch(tf.data.experimental.AUTOTUNE)
     else:
         TRAIN_SIZE = DS_SIZE
-        train_ds = enc_ds.batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE).cache()
+        train_ds = enc_ds.batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
         val_ds = None
 
     model = get_model(IMG_SIZE + (3,), BACKBONE, num_classes=2, trainable=False)
@@ -72,10 +75,12 @@ def train(args):
             steps_per_epoch=TRAIN_SIZE//BATCH_SIZE, 
             epochs=EPOCHS
             )
+
     return model
 
 if __name__ == "__main__":
     args = docopt(__doc__)
     model = train(args)
+    model.summary()
     model.save(args["--model"])
     pass
