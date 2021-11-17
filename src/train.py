@@ -11,6 +11,7 @@ Options:
     --epochs <int>          Number of epochs [default: 40]
     --val_split <float>     Rate of the validation data [default: 0.0]
     --backbone <name>       Select the detector backbone [default: mobilenetv2]
+    --freeze_backbone       Freeze backbone weights during the training
 """
 
 import os
@@ -36,6 +37,7 @@ def train(args):
     VAL_SPLIT = float(args["--val_split"])
     BACKBONE = args["--backbone"]
     IMG_SIZE = (256, 256) 
+    BACKBONE_TRAIN = not args["--freeze_backbone"]
 
     ds = data.data_read(IMG_PATH, ANN_PATH)
     pre_ds = data.data_preprocess(ds, IMG_SIZE)
@@ -62,7 +64,7 @@ def train(args):
         train_ds = enc_ds.batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
         val_ds = None
 
-    model = get_model(IMG_SIZE + (3,), BACKBONE, num_classes=2, trainable=False)
+    model = get_model(IMG_SIZE + (3,), BACKBONE, num_classes=2, trainable=BACKBONE_TRAIN)
     loss_fn = BoxClassLoss(2)
     model.compile(
             loss=loss_fn,
