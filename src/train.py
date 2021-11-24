@@ -85,6 +85,6 @@ if __name__ == "__main__":
     args = docopt(__doc__)
     model = train(args)
     #model.summary()
-    print("%s saved", args[--model])
     model.save(args["--model"])
+    print("\n\n%s model saved" %args["--model"])
     pass
