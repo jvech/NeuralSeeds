@@ -41,8 +41,8 @@ def get_bottleneck(backbone: "keras.Model") -> "keras.Model":
 
         p1_out = Add()([c1_out, c2_out_upx2]) #32x32
 
-        p2_out = Conv2D(filters, 3, 2, "same")(p1_out)
-        p3_out =   Conv2D(filters, 3, 2, "same")(p2_out)
+        p2_out = Conv2D(filters, 3, 2, "same")(p1_out) #16x16
+        p3_out =   Conv2D(filters, 3, 2, "same")(p2_out) #8x8
 
         outs = [p1_out, p2_out, p3_out]
         return Model(inputs=backbone.inputs, outputs=outs)

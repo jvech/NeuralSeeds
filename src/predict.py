@@ -18,8 +18,8 @@ class DetectionLayer(tf.keras.layers.Layer):
     def __init__( 
             self, 
             anchors, 
-            nms_iou_thresh = 0.4,
-            confidence_thresh = 0.2,
+            nms_iou_thresh = 0.2,
+            confidence_thresh = 0.5,
             max_detections_per_class  = 50,
             max_detections = 50,
             **kwargs):
@@ -56,7 +56,7 @@ class DetectionLayer(tf.keras.layers.Layer):
 def predict(args):
     IMG_PATH = args["<img>"]
     MODEL_PATH = args["<model>"]
-    ANCHOR_GRID = [(8, 8), (16, 16), (32, 32)]
+    ANCHOR_GRID = [(32, 32), (16, 16), (8, 8)]
     ASPECT_RATIOS = (1, 2/3, 3/2)
 
     model = load_model(MODEL_PATH, compile=False)
@@ -70,10 +70,10 @@ def predict(args):
     net_img = tf.constant(net_img, "float32")[None, ...]
 
     pred_boxes = model.predict(net_img)
-    pred_boxes = DetectionLayer(ANCHORS)(pred_boxes)
+    pred_boxes = DetectionLayer(ANCHORS, confidence_thresh=0.5)(pred_boxes)
     location_boxes = pred_boxes[0][0]
     classes = tf.concat(pred_boxes[1:3], axis=0)
-    classes = tf.argmax(classes)[:, tf.newaxis]
+    classes = tf.argmax(classes)[:, tf.newaxis] + 1
     classes = tf.cast(classes, tf.float32)
     final_boxes = tf.concat([location_boxes, classes], axis=1)
 
@@ -81,8 +81,6 @@ def predict(args):
         img1 = tf.cast(net_img[0]*255, tf.uint8)
         q = data.bndboxes_draw(img1, final_boxes)
         plt.imshow(q); plt.show()
-
-
 
 if __name__ == "__main__":
     args = docopt(__doc__)

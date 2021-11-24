@@ -11,6 +11,7 @@ Options:
     --epochs <int>          Number of epochs [default: 40]
     --val_split <float>     Rate of the validation data [default: 0.0]
     --backbone <name>       Select the detector backbone [default: mobilenetv2]
+                            available backbones (mobilnetv2, vgg16)
     --freeze_backbone       Freeze backbone weights during the training
 """
 
@@ -42,7 +43,7 @@ def train(args):
     ds = data.data_read(IMG_PATH, ANN_PATH)
     pre_ds = data.data_preprocess(ds, IMG_SIZE)
 
-    grid_sizes = [(8, 8), (16, 16), (32, 32)]
+    grid_sizes = [(32, 32), (16, 16), (8, 8)]
     aspect_ratios = (1, 2/3, 3/2)
     enc_ds = data.data_encode(pre_ds,
                               grid_sizes,
@@ -83,6 +84,7 @@ def train(args):
 if __name__ == "__main__":
     args = docopt(__doc__)
     model = train(args)
-    model.summary()
+    #model.summary()
+    print("%s saved", args[--model])
     model.save(args["--model"])
     pass

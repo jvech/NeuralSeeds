@@ -1,14 +1,13 @@
 **/__pycache__/
 data/
-tfrecords/
-weights/
-measures/
+**/*.h5
+src/*
 tags
-scripts/
 UNet_informe/
 manuals/*
 paper/*
 !manuals/*.pdf
 !paper/*.tex
 !paper/*.pdf
+!src/**/*.py
 references/
