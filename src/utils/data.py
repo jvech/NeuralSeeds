@@ -68,8 +68,8 @@ def bndboxes_draw(img: "tf.Tensor", boxes: "tf.Tensor") -> "np.ndarray":
     Y = boxes.numpy().astype("int").copy()
     for x1, y1, x2, y2, c in Y:
         pt1, pt2 = (x1, y1), (x2, y2)
-        if c == 1: COLOR = (255, 0, 0)          #RED
-        elif c == 2: COLOR = (255, 255, 0)      #YELLOW
+        if c == 0.0: COLOR = (255, 0, 0)          #RED
+        elif c == 1.0: COLOR = (255, 255, 0)      #YELLOW
         else: COLOR = (0, 0, 0)                 #BLACK
         X = cv2.rectangle(X, pt1, pt2, COLOR, 1)
     return tf.constant(X, dtype=tf.uint8)
@@ -110,8 +110,8 @@ def data_read(imgs_path: str, anns_path: str, img_size: '(int, int)' = (624, 624
     def parse_xml(root):
         x1y1_x2y2_c = []
         for member in root.findall('object'):
-            mclass = (1.0 if 'im' in member[0].text else 
-                     (2.0 if 'el' in member[0].text else 0)) 
+            mclass = (0.0 if 'im' in member[0].text else 
+                     (1.0 if 'el' in member[0].text else -1.0)) 
             xmin, ymin, xmax, ymax = member.find("bndbox")
             x1y1 = [float(xmin.text) , float(ymin.text) ]
             x2y2 = [float(xmax.text) , float(ymax.text) ]
@@ -175,7 +175,7 @@ def data_encode(ds, featuremap_sizes, aspect_ratios, thresh = 0.5):
 
         class_ids = tf.gather(boxes_classes, max_IoUs_ids)
         class_ids = tf.cast(class_ids, tf.float32)
-        class_ids = tf.where(obj_mask, class_ids, 0.0)
+        class_ids = tf.where(obj_mask, class_ids, -1.0)
         class_ids = tf.expand_dims(class_ids, axis=1)
 
         boxes_xywh = convert_to_xyhw(boxes)
@@ -210,6 +210,6 @@ if __name__ == "__main__":
         wh = tf.math.exp(phi[:, 2:]) * anchors[:, 2:]
         xywh_cls = tf.concat([xy, wh, cls], axis=1)
         xyxy_cls = convert_to_corners(xywh_cls)
-        q = bndboxes_draw(255*x, xyxy_cls[xyxy_cls[:, 4] != 0])
+        q = bndboxes_draw(255*x, xyxy_cls[xyxy_cls[:, 4] != -1])
         print(y[y[:, 4]!=0].shape[0])
         plt.imshow(q); plt.show()
