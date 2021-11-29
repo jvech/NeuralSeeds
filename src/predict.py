@@ -18,7 +18,7 @@ class DetectionLayer(tf.keras.layers.Layer):
     def __init__( 
             self, 
             anchors, 
-            nms_iou_thresh = 0.2,
+            nms_iou_thresh = 0.1,
             confidence_thresh = 0.5,
             max_detections_per_class  = 50,
             max_detections = 50,
@@ -72,9 +72,8 @@ def predict(args):
     pred_boxes = model.predict(net_img)
     pred_boxes = DetectionLayer(ANCHORS, confidence_thresh=0.5)(pred_boxes)
     location_boxes = pred_boxes[0][0]
-    classes = tf.concat(pred_boxes[1:3], axis=0)
-    classes = tf.argmax(classes)[:, tf.newaxis] + 1
-    classes = tf.cast(classes, tf.float32)
+    classes = tf.cast(pred_boxes[2], tf.float32)
+    classes = tf.transpose(classes)
     final_boxes = tf.concat([location_boxes, classes], axis=1)
 
     if args["--show"]:
