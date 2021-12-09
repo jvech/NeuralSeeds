@@ -32,7 +32,7 @@ class DetectionLayer(tf.keras.layers.Layer):
             self, 
             anchors, 
             nms_iou_thresh = 0.1,
-            confidence_thresh = 0.7,
+            confidence_thresh = 0.5,
             max_detections_per_class  = 50,
             max_detections = 50,
             **kwargs):
@@ -98,7 +98,10 @@ def predict(args):
 
     if args["--show"]:
         q = data.bndboxes_draw(img1, final_boxes)
-        plt.imshow(q); plt.show()
+        plt.imshow(q); 
+        plt.axis("off")
+        plt.tight_layout()
+        plt.show()
 
 if __name__ == "__main__":
     args = docopt(__doc__)
