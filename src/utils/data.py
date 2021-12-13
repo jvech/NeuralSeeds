@@ -21,6 +21,11 @@ def get_IoU(box1: "tf.Tensor", box2: "tf.Tensor") -> float:
     return float(Intersection / Union)
 
 def get_IoUs(boxes1: "tf.Tensor", boxes2: "tf.Tensor") -> "tf.Tensor":
+    """Return a (M, N) shape Tensor with Ious from boxes1 and boxes2
+
+    boxes1 and boxes2 have shapes (M, 4) and (N, 4) respectively and are
+    described by their corners (xmin, ymin, xmax, ymax)
+    """
     lu = tf.maximum(boxes1[:, None, :2], boxes2[:, :2])
     rd = tf.minimum(boxes1[:, None, 2:], boxes2[:, 2:])
 
@@ -64,6 +69,8 @@ def convert_to_corners(box_xyhw):
     return tf.stack([xmin, ymin, xmax, ymax], axis=-1)
 
 def bndboxes_draw(img: "tf.Tensor", boxes: "tf.Tensor") -> "np.ndarray":
+    """Plot boxes in corner format (xmin, ymin, xmax, ymax, cls)"""
+
     X = img.numpy().astype("uint8").copy()
     Y = boxes.numpy().astype("int").copy()
     for x1, y1, x2, y2, c in Y:
@@ -76,6 +83,7 @@ def bndboxes_draw(img: "tf.Tensor", boxes: "tf.Tensor") -> "np.ndarray":
 
 def generate_anchors(featuremap_size: tuple, img_size: tuple, aspect_ratio: float=1):
     """Generate a (M x N x 4) grid of boxes for an image"""
+
     x_anchors = tf.range(featuremap_size[0], dtype=tf.float32) + 0.5
     y_anchors = tf.range(featuremap_size[1], dtype=tf.float32) + 0.5
 
@@ -95,6 +103,8 @@ def generate_anchors(featuremap_size: tuple, img_size: tuple, aspect_ratio: floa
     return xywh_anchors
 
 def generate_multiple_anchors(featuremap_sizes: list, img_size: tuple, aspect_ratios: tuple):
+    """Return an array of anchor boxes of different featuremap shapes and aspect_ratios"""
+
     anchors = []
     for featmap_size in featuremap_sizes:
         for aspect_ratio in aspect_ratios:

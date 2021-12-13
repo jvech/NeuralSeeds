@@ -10,4 +10,5 @@ paper/*
 !paper/*.tex
 !paper/*.pdf
 !src/**/*.py
+!src/utils/
 references/

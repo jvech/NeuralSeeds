@@ -6,7 +6,13 @@ from tensorflow.keras import backend as K
 from tensorflow.keras.layers import Conv2D, Add, Concatenate, Reshape, UpSampling2D, Layer
 
 
-def get_backbone(input_shape, backbone_name="MobileNetV2", trainable=True, **kwargs):
+def get_backbone(
+        input_shape: '(int, int)', 
+        backbone_name = "MobileNetV2", 
+        trainable = True, 
+        **kwargs):
+    """Return a backbone keras graph"""
+
     name = backbone_name.lower()
     if name == "mobilenetv2":
         model = MobileNetV2(input_shape=input_shape,
@@ -26,28 +32,32 @@ def get_backbone(input_shape, backbone_name="MobileNetV2", trainable=True, **kwa
     return Model(inputs=model.inputs, outputs = outs)
 
 def get_bottleneck(backbone: "keras.Model") -> "keras.Model":
-        filters = 128
-        out_c1, out_c2, out_c3 = backbone.outputs
+    """Return a dummy pyramid bottleneck taking as input the backbone"""
 
-        c1_out = Conv2D(filters, 1, 1, "same")(out_c1) #32x32
-        c2_out = Conv2D(filters, 1, 1, "same")(out_c2) #16x16
-        c3_out = Conv2D(filters, 1, 1, "same")(out_c3) #8x8
+    filters = 128
+    out_c1, out_c2, out_c3 = backbone.outputs
 
-        c3_out_upx2 = UpSampling2D(2)(c3_out) #16x16
+    c1_out = Conv2D(filters, 1, 1, "same")(out_c1) #32x32
+    c2_out = Conv2D(filters, 1, 1, "same")(out_c2) #16x16
+    c3_out = Conv2D(filters, 1, 1, "same")(out_c3) #8x8
 
-        c2_c3_sum = Add()([c2_out, c3_out_upx2]) #16x16
+    c3_out_upx2 = UpSampling2D(2)(c3_out) #16x16
 
-        c2_out_upx2 = UpSampling2D(2)(c2_c3_sum) #32x32
+    c2_c3_sum = Add()([c2_out, c3_out_upx2]) #16x16
 
-        p1_out = Add()([c1_out, c2_out_upx2]) #32x32
+    c2_out_upx2 = UpSampling2D(2)(c2_c3_sum) #32x32
 
-        p2_out = Conv2D(filters, 3, 2, "same")(p1_out) #16x16
-        p3_out =   Conv2D(filters, 3, 2, "same")(p2_out) #8x8
+    p1_out = Add()([c1_out, c2_out_upx2]) #32x32
 
-        outs = [p1_out, p2_out, p3_out]
-        return Model(inputs=backbone.inputs, outputs=outs)
+    p2_out = Conv2D(filters, 3, 2, "same")(p1_out) #16x16
+    p3_out =   Conv2D(filters, 3, 2, "same")(p2_out) #8x8
+
+    outs = [p1_out, p2_out, p3_out]
+    return Model(inputs=backbone.inputs, outputs=outs)
 
 def get_head(num_classes, backbone):
+    """Return the final model output"""
+
     out_layers = []
     for backbone_lyr in backbone.outputs:
         neck_lyrs = []
@@ -72,7 +82,13 @@ def get_head(num_classes, backbone):
     return Model(inputs=backbone.inputs, outputs=out)
 
 
-def get_model(input_shape: tuple, backbone_name: str, num_classes: int, **kwargs) -> "keras.Model":
+def get_model(
+        input_shape: tuple, 
+        backbone_name: str, 
+        num_classes: int, 
+        **kwargs) -> "keras.Model":
+    """Load the Object Detection Model"""
+
     tf.keras.backend.clear_session()
     backbone = get_backbone(input_shape, backbone_name, **kwargs)
     pyramid = get_bottleneck(backbone)
