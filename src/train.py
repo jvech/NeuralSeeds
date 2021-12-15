@@ -37,17 +37,16 @@ def train(args):
     EPOCHS = int(args["--epochs"])
     VAL_SPLIT = float(args["--val_split"])
     BACKBONE = args["--backbone"]
-    IMG_SIZE = (256, 256) 
     BACKBONE_TRAIN = not args["--freeze_backbone"]
 
-    ds = data.data_read(IMG_PATH, ANN_PATH)
-    pre_ds = data.data_preprocess(ds, IMG_SIZE)
+    GRID_SIZES, ASPECT_RATIOS, NET_INPUT_SIZE = data.load_config("./config.json")
 
-    grid_sizes = [(32, 32), (16, 16), (8, 8)]
-    aspect_ratios = (1, 2/3, 3/2)
+    ds = data.data_read(IMG_PATH, ANN_PATH)
+    pre_ds = data.data_preprocess(ds, NET_INPUT_SIZE)
+
     enc_ds = data.data_encode(pre_ds,
-                              grid_sizes,
-                              aspect_ratios,
+                              GRID_SIZES,
+                              ASPECT_RATIOS,
                               thresh=0.3)
 
     enc_ds = enc_ds.shuffle(1024, seed=42)
@@ -65,7 +64,7 @@ def train(args):
         train_ds = enc_ds.batch(BATCH_SIZE).prefetch(tf.data.experimental.AUTOTUNE)
         val_ds = None
 
-    model = get_model(IMG_SIZE + (3,), BACKBONE, num_classes=2, trainable=BACKBONE_TRAIN)
+    model = get_model(NET_INPUT_SIZE + (3,), BACKBONE, num_classes=2, trainable=BACKBONE_TRAIN)
     loss_fn = BoxClassLoss(2)
     model.compile(
             loss=loss_fn,

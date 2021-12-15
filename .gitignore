@@ -11,4 +11,5 @@ paper/*
 !paper/*.pdf
 !src/**/*.py
 !src/utils/
+!src/config.json
 references/

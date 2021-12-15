@@ -4,7 +4,30 @@ import cv2
 import tensorflow as tf
 import numpy as np
 import xml.etree.ElementTree as ET
+import json
 #from utils.metrics import get_IoU
+
+def load_config(path):
+    """Load software configs
+
+    Arguments:
+        path: path to the configuration file
+
+    Returns:
+        GRID_SIZES:     list indicating the anchors grid layout
+        ASPECT_RATIOS:  list indicating the anchors aspect ratios
+        IMG_SIZE:       tuple which indicate the size of the model input
+    """
+
+    with open(path) as file:
+        data = json.load(file)
+
+    GRID_SIZES = [(int(grid), int(grid)) for grid in data["GRIDS"]]
+    ASPECT_RATIOS = [float(asp.split(":")[0]) / float(asp.split(":")[1])
+                     for asp in data["ASPECT_RATIOS"]]
+    IMG_SIZE = tuple(int(size) for size in data["IMG_SIZE"])
+
+    return GRID_SIZES, ASPECT_RATIOS, IMG_SIZE
 
 def get_IoU(box1: "tf.Tensor", box2: "tf.Tensor") -> float:
     """Return The intersection over Union over 2 corner boxes"""
@@ -68,6 +91,26 @@ def convert_to_corners(box_xyhw):
         return tf.stack([xmin, ymin, xmax, ymax, classes], axis=-1)
     return tf.stack([xmin, ymin, xmax, ymax], axis=-1)
 
+
+def img_pre(img: "tf.Tensor", boxes: "tf.Tensor", new_size: tuple):
+    """Resize Images and bounding boxes to a certain size
+
+    Arguments:
+        img:    Image array with uint8 type
+        boxes:  Array with (M, 5) shape containing M bounding boxes in
+                (xmin, ymin, xmax, ymax, cls) format
+    """
+
+    width, height = img.shape[0], img.shape[1]
+    if (height != new_size[1]) or (width != new_size[0]):
+        img = tf.image.resize(img, new_size)
+        x1 = boxes[:,0]*(new_size[0]/width)
+        y1 = boxes[:,1]*(new_size[1]/height)
+        x2 = boxes[:,2]*(new_size[0]/width)
+        y2 = boxes[:,3]*(new_size[1]/height)
+        boxes = tf.stack([x1, y1, x2, y2, boxes[:,4]], axis=1)
+    return img, boxes
+
 def bndboxes_draw(img: "tf.Tensor", boxes: "tf.Tensor") -> "np.ndarray":
     """Plot boxes in corner format (xmin, ymin, xmax, ymax, cls)"""
 
@@ -113,6 +156,45 @@ def generate_multiple_anchors(featuremap_sizes: list, img_size: tuple, aspect_ra
             anchors.append(anchor)
     return tf.concat(anchors, axis=0)
 
+class NonMaximumSupression(tf.keras.layers.Layer):
+    def __init__(
+            self,
+            anchors,
+            nms_iou_thresh = 0.1,
+            confidence_thresh = 0.5,
+            max_detections_per_class  = 50,
+            max_detections = 50,
+            **kwargs):
+        super(NonMaximumSupression, self).__init__(**kwargs)
+        self.anchors = anchors
+        self.confidence_thresh = confidence_thresh
+        self.max_detections_per_class = max_detections_per_class
+        self.max_detections = max_detections
+        self.nms_iou_thresh = nms_iou_thresh
+
+    def _decode_predictions(self, pred_boxes):
+        anchors = self.anchors[None, ...]
+        xy = pred_boxes[..., 0:2]*anchors[..., 2:] + anchors[..., :2]
+        wh = tf.math.exp(pred_boxes[..., 2:]) * anchors[..., 2:]
+        box_xywh = tf.concat([xy, wh], axis=-1)
+        box_corners = convert_to_corners(box_xywh)
+        return box_corners
+        
+
+    def call(self, predictions):
+        pred_boxes = predictions[..., 0:4]
+        cls = tf.nn.sigmoid(predictions[..., 4:])
+        decoded_boxes = self._decode_predictions(pred_boxes)
+        return tf.image.combined_non_max_suppression(
+                    tf.expand_dims(decoded_boxes, axis=2),
+                    cls,
+                    self.max_detections_per_class,
+                    self.max_detections,
+                    self.nms_iou_thresh,
+                    self.confidence_thresh,
+                    clip_boxes = False
+                )
+
 def data_read(imgs_path: str, anns_path: str, img_size: '(int, int)' = (624, 624)) -> 'tf.data.Dataset':
     anns = [path.join(anns_path, ann_file) for ann_file in os.listdir(anns_path)]
     imgs_folder = imgs_path
@@ -147,7 +229,7 @@ def data_read(imgs_path: str, anns_path: str, img_size: '(int, int)' = (624, 624
     return ds
 
 def data_preprocess(ds, new_size=(256, 256)):
-    def img_pre(img, boxes):
+    def imgbox_pre(img, boxes):
         img = img/255.0
         width, height = img.shape[0], img.shape[1]
         if (height != new_size[1]) or (width != new_size[0]):
@@ -159,7 +241,7 @@ def data_preprocess(ds, new_size=(256, 256)):
             boxes = tf.stack([x1, y1, x2, y2, boxes[:,4]], axis=1)
         return img, boxes
 
-    pre_ds = ds.map(img_pre)
+    pre_ds = ds.map(imgbox_pre)
     return pre_ds
 
 def data_encode(ds, featuremap_sizes, aspect_ratios, thresh = 0.5):
@@ -205,15 +287,16 @@ def data_encode(ds, featuremap_sizes, aspect_ratios, thresh = 0.5):
 if __name__ == "__main__":
     IMG_PATH = "../data/GermPredDataset/ZeaMays/img"
     ANNS_PATH = "../data/GermPredDataset/ZeaMays/true_ann"
+    featuremap_sizes, aspect_ratios, img_size = load_config("config.json")
     ds = data_read(IMG_PATH, ANNS_PATH)
     pre_ds = data_preprocess(ds, (256, 256))
-    featuremap_sizes = [(64, 64), (32, 32), (8, 8)]
-    aspect_ratios = (1,  2/3, 3/2)
+    #featuremap_sizes = [(64, 64), (32, 32), (8, 8)]
+    #aspect_ratios = (1,  2/3, 3/2)
     enc_ds = data_encode(pre_ds, featuremap_sizes, aspect_ratios, thresh=0.35)
 
     import matplotlib.pyplot as plt
     for x, y in enc_ds.take(2):
-        anchors = generate_multiple_anchors(featuremap_sizes, (256, 256), aspect_ratios)
+        anchors = generate_multiple_anchors(featuremap_sizes, img_size, aspect_ratios)
         phi = y[:, :4]
         cls = tf.expand_dims(y[:, 4], axis=-1)
         xy = phi[:, 0:2]*anchors[:, 2:] + anchors[:, :2]
@@ -221,5 +304,4 @@ if __name__ == "__main__":
         xywh_cls = tf.concat([xy, wh, cls], axis=1)
         xyxy_cls = convert_to_corners(xywh_cls)
         q = bndboxes_draw(255*x, xyxy_cls[xyxy_cls[:, 4] != -1])
-        print(y[y[:, 4]!=0].shape[0])
         plt.imshow(q); plt.show()
